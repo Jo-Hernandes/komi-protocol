@@ -25,6 +25,5 @@ def getReadableMac(byteArray):
 def getSniffingSocket(interface = "eth0"):
     s = sock.socket(sock.AF_PACKET, sock.SOCK_RAW, sock.htons(3))
     s.bind((interface, 0))
-
     return s
     

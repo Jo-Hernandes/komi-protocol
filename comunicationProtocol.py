@@ -1,10 +1,9 @@
 from struct import *
 from ethernetUtils import *
 from enum import Enum
-from packetBuilder import buildPacket, unpackPacket
+from packetUtils import buildEthernet, buildPacket, unpackPacket, unpackEthernet
 from threading import Thread
 import time
-import binascii
 
 class KOMI_Types(Enum):
     START = 0
@@ -23,54 +22,60 @@ class KomiProto:
     def __str__(self):
         return 'Machine %s - Mac Address %s' % (self.machineName, self.macAddress)
         
-    def sendPack(self, type : KOMI_Types, destinationMac = BROADCAST_MAC, message = ''):
-        dst_mac = getMacAsByteArray(destinationMac)
-        src_mac = getMacAsByteArray(self.macAddress)
-    
-        # Ethernet header
-        eth_header = pack('!6B6BH', dst_mac[0], dst_mac[1], dst_mac[2], dst_mac[3], dst_mac[4], dst_mac[5], 
-            src_mac[0], src_mac[1], src_mac[2], src_mac[3], src_mac[4], src_mac[5], PROTOCOL_NUMBER)
-    
-        # final full packet - syn packets dont have any data
-        packet = eth_header  +  buildPacket(type.value, self.machineName, message)
-        r = sendeth(packet, self.interface)
-        print("send %s type for %s - message : %s" % (type.name.rjust(10), destinationMac, message))
+    def sendPack(self, destinationMac = BROADCAST_MAC, komiPacket = b''):
+        ethernet = buildEthernet(
+            getMacAsByteArray(destinationMac), 
+            getMacAsByteArray(self.macAddress),
+            PROTOCOL_NUMBER)
+            
+        sendeth(ethernet + komiPacket, self.interface)
+        # print("send %s type for %s" % (type.name.rjust(10), destinationMac))
     
     def startKomunication(self, heartbeat):
-        self.sendPack(KOMI_Types.START)
+        self.sendPack(komiPacket= buildPacket(KOMI_Types.START.value, self.machineName))
         
-        thread_a = Thread(target=self.keepHeartbeat, args=[heartbeat], daemon=True)
-        thread_b = Thread(target=self.sniffNetwork, daemon=True)
-        thread_a.start()
-        thread_b.start()
+        heartbeatThread = Thread(target=self.keepHeartbeat, args=[heartbeat], daemon=True)
+        sniffThread = Thread(target=self.sniffNetwork, daemon=True)
+        heartbeatThread.start()
+        sniffThread.start()
         while True:
             pass
         
     def keepHeartbeat(self, delay):
         while True:
             time.sleep(delay)
-            self.sendPack(KOMI_Types.HEARTBEAT)   
+            self.sendPack(komiPacket= buildPacket(KOMI_Types.HEARTBEAT.value, self.machineName))   
 
     def sniffNetwork(self):
         
         while True:
             rawSocket = getSniffingSocket(self.interface)
-            packet =  rawSocket.recvfrom(2048)
+            packet =  rawSocket.recvfrom(50)
             
-            ethernet_header = packet[0][0:14]
-            ethernet_detailed = unpack("!6s6s2s", ethernet_header)
+            ethernetPacket = unpackEthernet(packet[0][0:14])
 
-            if ethernet_detailed[2] != PROTOCOL_NUMBER:
+            if ethernetPacket.ethType != PROTOCOL_NUMBER:
                 rawSocket.close()
                 continue
-
-            print ("****************_ETHERNET_FRAME_****************")
-            print ("Dest MAC:        ", getReadableMac(ethernet_detailed[0]))
-            print ("Source MAC:      ", getReadableMac(ethernet_detailed[1]))
-            print ("Type:            ", ethernet_detailed[2].hex())
             
-            komi_packet = unpackPacket(packet[0][14:50])
-            print(komi_packet)
-            
+            komiPacket = unpackPacket(packet[0][14:50])
             
             rawSocket.close()
+
+
+
+    def __handleStart(self, ethHeader, packet):
+        print(packet)
+        
+    def __handleHeartBeat(self, ethHeader, packet):
+        print(packet)
+        
+    def __handleTalk(self, ethHeader, packet):
+        print(packet)
+    
+    availableHandlers = {
+        KOMI_Types.START.value : __handleStart,
+        KOMI_Types.HEARTBEAT.value : __handleHeartBeat,
+        KOMI_Types.TALK.value : __handleTalk
+        
+    }
