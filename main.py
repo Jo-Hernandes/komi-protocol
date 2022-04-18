@@ -23,4 +23,6 @@ if __name__ == "__main__":
     komi = KomiProto(args.name, mac, args.interface)
     print(komi)
     komi.startKomunication(args.heartbeat)
+    while True: 
+        pass
 

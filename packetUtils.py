@@ -1,11 +1,11 @@
 from struct import *
 from collections import namedtuple
+from ethernetUtils import getReadableMac
 
 KOMI_STRUCT_FORMAT = '!b10s25s'
 ETH_STRUCT_FORMAT = '!6s6sH'
 comunicationPacket = namedtuple('Comunication', 'type name message')
-ethernetPacket = namedtuple('Ethernet', 'macAddr macDst ethType')
-
+ethernetPacket = namedtuple('Ethernet', 'macDst macAddr ethType')
 
 def buildPacket(type, name, message = ''):
    packet = pack(KOMI_STRUCT_FORMAT, type, name.encode('utf-8'), message.encode('utf-8'))
@@ -18,10 +18,13 @@ def unpackPacket(record):
             packet.message.decode('utf-8', 'ignore').strip('\x00')])
     
 def buildEthernet(destinationMac, sourceMac, protocol):
-   packet = pack(ETH_STRUCT_FORMAT, destinationMac, 
-      sourceMac, protocol)
+   packet = pack(ETH_STRUCT_FORMAT, sourceMac, destinationMac, protocol)
    return packet
 
 def unpackEthernet(record):
    packet = ethernetPacket._make(unpack(ETH_STRUCT_FORMAT, record))
-   return packet
+   return ethernetPacket._make([
+      getReadableMac(packet.macDst),
+      getReadableMac(packet.macAddr),
+      packet.ethType
+   ])

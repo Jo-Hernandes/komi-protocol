@@ -22,10 +22,10 @@ class KomiProto:
     def __str__(self):
         return 'Machine %s - Mac Address %s' % (self.machineName, self.macAddress)
         
-    def sendPack(self, destinationMac = BROADCAST_MAC, komiPacket = b''):
+    def sendPack(self, destinationMac = BROADCAST_MAC, komiPacket = None):
         ethernet = buildEthernet(
-            getMacAsByteArray(destinationMac), 
             getMacAsByteArray(self.macAddress),
+            getMacAsByteArray(destinationMac), 
             PROTOCOL_NUMBER)
             
         sendeth(ethernet + komiPacket, self.interface)
@@ -38,8 +38,6 @@ class KomiProto:
         sniffThread = Thread(target=self.sniffNetwork, daemon=True)
         heartbeatThread.start()
         sniffThread.start()
-        while True:
-            pass
         
     def keepHeartbeat(self, delay):
         while True:
@@ -53,29 +51,25 @@ class KomiProto:
             packet =  rawSocket.recvfrom(50)
             
             ethernetPacket = unpackEthernet(packet[0][0:14])
-
-            if ethernetPacket.ethType != PROTOCOL_NUMBER:
-                rawSocket.close()
-                continue
             
-            komiPacket = unpackPacket(packet[0][14:50])
-            
+            if (ethernetPacket.ethType == PROTOCOL_NUMBER 
+                and ethernetPacket.macAddr != self.macAddress):    
+                komiPacket = unpackPacket(packet[0][14:50])
+                {
+                    KOMI_Types.START.value : self.__handleStart,
+                    KOMI_Types.HEARTBEAT.value : self.__handleHeartBeat,
+                    KOMI_Types.TALK.value : self.__handleTalk    
+                }.get(1, (lambda : print("Komi Type inexistente")))(ethernetPacket, komiPacket)
+                
             rawSocket.close()
-
-
-
+    
+   
     def __handleStart(self, ethHeader, packet):
-        print(packet)
+        self.sendPack(destinationMac= ethHeader.macAddr,
+                          komiPacket= buildPacket(KOMI_Types.HEARTBEAT.value, self.machineName))
         
     def __handleHeartBeat(self, ethHeader, packet):
-        print(packet)
-        
+        pass
+            
     def __handleTalk(self, ethHeader, packet):
-        print(packet)
-    
-    availableHandlers = {
-        KOMI_Types.START.value : __handleStart,
-        KOMI_Types.HEARTBEAT.value : __handleHeartBeat,
-        KOMI_Types.TALK.value : __handleTalk
-        
-    }
+        print('Mensagem recebida de %s : %s' % (ethHeader.macAddr, packet.message))
