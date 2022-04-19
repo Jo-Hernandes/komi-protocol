@@ -39,11 +39,12 @@ class KomiProto:
         self.sendPack(komiPacket=buildPacket(
             KOMI_Types.START.value, self.machineName))
 
-        heartbeatThread = Thread(target=self.keepHeartbeat, args=[
-                                 heartbeat], daemon=True)
-        sniffThread = Thread(target=self.sniffNetwork, daemon=True)
-        updateAddresses = Thread(
-            target=self.addressBook.updateData, daemon=True)
+        heartbeatThread = Thread(target=self.keepHeartbeat,
+                                 args=[heartbeat], daemon=True)
+        sniffThread = Thread(target=self.sniffNetwork,
+                             daemon=True)
+        updateAddresses = Thread(target=self.addressBook.updateData,
+                                 daemon=True)
 
         heartbeatThread.start()
         sniffThread.start()

@@ -27,7 +27,7 @@ class AddressBook:
 
     def updateData(self):
         while True:
-            time.sleep(15)
+            time.sleep(1)
             currentTime = time.time()
             self.addressData = list(
                 filter(lambda data: currentTime - data.timeStamp < 15, self.addressData))

@@ -29,12 +29,28 @@ if __name__ == "__main__":
     komi.startKomunication(args.heartbeat)
     while True:
         print('Digite 1 para enviar mensagem, 2 para ver lista de enderecos ou 0 para sair')
-        option = int(input('Opcao : '), 10)
+        try:
+            option = int(input('Opcao : '), 10)
+        except KeyboardInterrupt:
+            quit()
+        except:
+            option = None
+            print("Valor digitado invalido. Favor inserir um numero de 0 a 2")
+
         if option == 1:
-            macDst = input('Favor inserir endereco mac do remetente : ')
-            message = input('Favor inserir mensagem a ser enviada : ')
-            komi.komunicate(macDst, message)
+            try:
+                macDst = input('Favor inserir endereco mac do remetente : ')
+                message = input('Favor inserir mensagem a ser enviada : ')
+
+                komi.komunicate(macDst, message)
+            except KeyboardInterrupt:
+                quit()
+            except:
+                print(
+                    "Favor inserir um endereco mac no formato valido: XX:XX:XX:XX:XX:XX")
+
         if option == 2:
             komi.showAddressList()
+
         if option == 0:
-            exit()
+            quit()
