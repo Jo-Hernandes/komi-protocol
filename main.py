@@ -28,4 +28,13 @@ if __name__ == "__main__":
     print(komi)
     komi.startKomunication(args.heartbeat)
     while True:
-        pass
+        print('Digite 1 para enviar mensagem, 2 para ver lista de enderecos ou 0 para sair')
+        option = int(input('Opcao : '), 10)
+        if option == 1:
+            macDst = input('Favor inserir endereco mac do remetente : ')
+            message = input('Favor inserir mensagem a ser enviada : ')
+            komi.komunicate(macDst, message)
+        if option == 2:
+            komi.showAddressList()
+        if option == 0:
+            exit()
